@@ -1,7 +1,7 @@
 import sqlite3
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
-from passlib.apps import custom_app_context as pwd_context
+from passlib.context import CryptContext
 from tempfile import mkdtemp
 
 from helpers import *
@@ -27,12 +27,14 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+#setup established hasing scheme
+myctx = CryptContext(schemes=["sha256_crypt"])
 # configure CS50 Library to use SQLite database
 #db = SQL("sqlite:///finance.db")
 
 # https://docs.python.org/3/library/sqlite3.html
-conn = sqlite3.connect('finance.db')
-db = conn.cursor()
+# conn = sqlite3.connect('finance.db')
+# db = conn.cursor()
 
 @app.route("/")
 @login_required
@@ -55,6 +57,9 @@ def history():
 def login():
     """Log user in."""
 
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
+
     # forget any user_id
     session.clear()
 
@@ -69,15 +74,21 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password")
 
+        username = request.form.get("username")
+
         # query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username", username=request.form.get("username"))
+        db.execute('''SELECT * FROM users WHERE username=?''', (username,))
+        rows = db.fetchone()
 
         # ensure username exists and password is correct
-        if len(rows) != 1 or not pwd_context.verify(request.form.get("password"), rows[0]["hash"]):
+        if rows is None or not myctx.verify(request.form.get("password"), rows[2]):
             return apology("invalid username and/or password")
 
+        #close database connection    
+        conn.close()
+
         # remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+        session["user_id"] = rows[0]
 
         # redirect user to home page
         return redirect(url_for("index"))
@@ -100,11 +111,24 @@ def logout():
 @login_required
 def quote():
     """Get stock quote."""
-    return apology("TODO")
+    
+    #Displays quote page
+    return render_template("quote.html")
+
+    #retrive stock quote
+    qt_result = lookup(request.form.get("conf_password"))
+    if qt_result == None
+        
+
+    
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user."""
+
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
 
     # forget any user_id
     session.clear()
@@ -129,6 +153,35 @@ def register():
         # ensure password confirmation matched password
         elif request.form.get("password") != request.form.get("conf_password"):
             return apology("password and password confirmation fields do not match")
+
+        
+        #hash userpassword using werkzeug.security import generate_password_hash
+        hash_pw = myctx.hash(request.form.get("password"))
+        username = request.form.get("username")
+
+        # Add user to users table
+        #result = db.execute('''INSERT INTO users(username, hash) VALUES(?,?)''', (username, hash_pw))
+
+        try:
+            db.execute('''INSERT INTO users(username, hash) VALUES(?,?)''', (username, hash_pw))
+        except:
+            return apology("Username already exists")
+
+        # query database for username
+        db.execute('''SELECT * FROM users WHERE username=?''', (username,))
+        rows = db.fetchone()
+        
+        #commit changes and close database    
+        conn.commit()
+        conn.close()
+        
+        # remember which user has logged in
+        session["user_id"] = rows[0]
+
+        # redirect user to home page
+        return redirect(url_for("index"))
+
+
     # else if user reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("register.html")

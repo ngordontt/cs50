@@ -3,6 +3,7 @@ import urllib.request
 
 from flask import redirect, render_template, request, session
 from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 def apology(message, code=400):

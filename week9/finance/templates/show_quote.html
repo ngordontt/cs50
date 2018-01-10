@@ -1,21 +1,17 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Register
+    Log In
 {% endblock %}
 
 {% block main %}
-    <h4>Please enter a user name, password and password again to confirm passwords match</h4>
-    <form action="{{ url_for('register') }}" method="post">
+    <form action="{{ url_for('login') }}" method="post">
         <fieldset>
             <div class="form-group">
                 <input autocomplete="off" autofocus class="form-control" name="username" placeholder="Username" type="text"/>
             </div>
             <div class="form-group">
                 <input class="form-control" name="password" placeholder="Password" type="password"/>
-            </div>
-            <div class="form-group">
-                <input class="form-control" name="conf_password" placeholder="Confirm Password" type="password"/>
             </div>
             <div class="form-group">
                 <button class="btn btn-default" type="submit">Log In</button>

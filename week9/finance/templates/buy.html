@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Log In
+{% endblock %}
+
+{% block main %}
+    <form action="{{ url_for('login') }}" method="post">
+        <fieldset>
+            <div class="form-group">
+                <input autocomplete="off" autofocus class="form-control" name="Stock_symbol" placeholder="Enter Stock Symbol" type="text"/>
+            </div>
+            <div class="form-group">
+                <input class="form-control" name="Quantity" placeholder="eg. 20" type="number"/>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Buy</button>
+            </div>
+        </fieldset>
+    </form>
+{% endblock %}

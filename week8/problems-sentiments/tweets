@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+from helpers import get_user_timeline
+from analyzer import Analyzer
+from termcolor import colored
+import sys
+import os
+
+def main():
+
+    # ensure proper usage
+    if len(sys.argv) != 2:
+        sys.exit("Usage: ./tweet Username")
+
+    # absolute paths to lists
+    positives = os.path.join(sys.path[0], "positive-words.txt")
+    negatives = os.path.join(sys.path[0], "negative-words.txt")
+
+    # instantiate analyzer
+    analyzer = Analyzer(positives, negatives)
+
+    # instantiate get_user_timeline
+    tweets_str = get_user_timeline(sys.argv[1],50)
+
+    #check if successful
+    if tweets_str == None:
+        sys.exit("Error, unable to access user's tweets")
+
+    # analyze tweets with for loop
+    for tweet in tweets_str:
+        score = analyzer.analyze_tweet(tweet)
+        if score > 0.0:
+            print(colored(":)", "green"))
+        elif score < 0.0:
+            print(colored(":(", "red"))
+        else:
+            print(colored(":|", "yellow"))
+
+if __name__ == "__main__":
+    main()
+
+#export API_KEY=8e1Yu8iBtyoNznA8qmbpKOgG3
+#export API_SECRET=Fu49TDMBtalFCJ35owZh9s2Gb4bt2OluLQ0aAXJvFXMBYjPkDj

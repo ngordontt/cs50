@@ -1,5 +1,6 @@
 import csv
 import urllib.request
+import requests
 
 from flask import redirect, render_template, request, session
 from functools import wraps
@@ -68,7 +69,7 @@ def lookup(symbol):
 
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
-            "name": row[1],
+            "name": row[2],
             "price": price,
             "symbol": row[0].upper()
         }
@@ -99,9 +100,20 @@ def lookup(symbol):
         except:
             return None
 
+        #get correct name for stock symbol    
+        url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(symbol)
+
+        result = requests.get(url).json()
+
+        for x in result['ResultSet']['Result']:
+            if x['symbol'] == symbol:
+                x
+                                
+
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
-            "name": symbol.upper(), # for backward compatibility with Yahoo
+            "name":x['name'],
+            #"name": symbol.upper(), # for backward compatibility with Yahoo
             "price": price,
             "symbol": symbol.upper()
         }

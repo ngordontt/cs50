@@ -111,16 +111,35 @@ def logout():
 @login_required
 def quote():
     """Get stock quote."""
-    
-    #Displays quote page
-    return render_template("quote.html")
 
-    #retrive stock quote
-    qt_result = lookup(request.form.get("conf_password"))
-    if qt_result == None
-        
+    if request.method == "POST":
 
+        #retrive stock quote
+        qt_result = lookup(request.form.get("symbol"))
+        if qt_result == None:
+            return apology("Stock symbol entered not found")
+
+        else:
+            session['pass_symbol'] = qt_result['symbol']
+            #return apology("Stock symbol entered not found")
+            return render_template("show_quote.html", name=qt_result['name'], price=qt_result['price'], symbol=qt_result['symbol'])
+    else:
+        return render_template("quote.html")
     
+
+@app.route("/show_quote", methods=["GET", "POST"])
+@login_required
+def show_quote():
+    """Display stock quote."""
+
+    pass_symbol = session.get('pass_symbol', None)
+
+    if request.method == "POST":
+        return render_template("buy.html", symbol= pass_symbol)
+
+    else:
+        return render_template("show_quote.html")
+
 
 
 @app.route("/register", methods=["GET", "POST"])

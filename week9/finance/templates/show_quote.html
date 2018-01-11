@@ -1,20 +1,31 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Log In
+    Stock info
 {% endblock %}
 
 {% block main %}
-    <form action="{{ url_for('login') }}" method="post">
+    <form action="{{ url_for('show_quote') }}" method="post">
+        <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Stock Name</th>
+                <th scope="col">Stock Price</th>
+                <th scope="col">Stock Symbol</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{name}}</td>
+                <td>{{price}}</td>
+                <td>{{symbol}}</td>
+              </tr>
+            </tbody>
+          </table>
         <fieldset>
             <div class="form-group">
-                <input autocomplete="off" autofocus class="form-control" name="username" placeholder="Username" type="text"/>
-            </div>
-            <div class="form-group">
-                <input class="form-control" name="password" placeholder="Password" type="password"/>
-            </div>
-            <div class="form-group">
-                <button class="btn btn-default" type="submit">Log In</button>
+                <button class="btn btn-default" type="submit">Buy</button>
+                <a class="btn btn-default" href="{{ url_for('quote') }}" role="button">Quote</a>
             </div>
         </fieldset>
     </form>

@@ -1,41 +1,69 @@
-# import sqlite3
-# from passlib.context import CryptContext
-
-
-# #setup established hasing scheme
-# myctx = CryptContext(schemes=["sha256_crypt"])
-
+import sqlite3
+import datetime
 
 # conn = sqlite3.connect('finance.db')
 # db = conn.cursor()
 
+# #find id of logged on user
+# id = 4
 
-# # query database for username
-# username = "my"
-# db.execute('''SELECT * FROM users WHERE username=?''', (username,))
+# #retive cash balance of logged on user
+# db.execute('''SELECT * FROM users WHERE id=?''', (id,))
 # rows = db.fetchone()
-# # print(rows)
+# print(rows[3])
 
-# hash1 = myctx.hash("my")
-# # print(hash1)
-
-# myctx.verify("my", hash1)
-
-# # ensure username exists and password is correct
-# hash_tb = rows[2]
+#establish connection to database
+# conn = sqlite3.connect('finance.db')
+# db = conn.cursor()
 
 
-# if not myctx.verify("mt", hash_tb):
-#     print("invalid")
+# try:
+#     db.execute('''SELECT * FROM transactions WHERE userid=? ORDER BY Symbol''', (4,))
+#     rows = db.fetchall()
+    
+#     #close database connection    
+#     conn.commit()
+#     conn.close()
+#     for r in rows:
+#         x=0
+#         if x=0
+#             r[0] = 
+#         if r[0] == r[]
+#             r[4] = t
+#         print(r)           
 
-# # print(rows[2])
+# except sqlite3.Error as er:
+#     print(er)
 
-# # close database connection    
 # conn.close()
 
-from helpers import *
 
-sy = lookup("nok")
-print(sy)
+from collections import namedtuple  
+from itertools import groupby
 
+#a namedtuple is a tuple that permits attribute access. 
+#In this case, beer.category maps to beer[0], and 
+#beer.brand maps to beer[0]   
+Beer = namedtuple('Beer', ['category', 'brand'])
 
+# Note that the beers array is sorted   
+beers = [  
+    Beer('IPA', 'Sierra Nevada'),  
+    Beer('IPA', 'Goose Island'),  
+    Beer('Porter', 'Deschutes Black Butte'),  
+    Beer('Porter', 'Stone Smoked Porter'),  
+    Beer('Pilsener', 'Sierra Nevada Pilsener'),  
+    Beer('Pilsener', 'Pilsener Urquell')  
+]
+
+beer_map = {}  
+for key, group in groupby(beers, lambda beer: beer.category):  
+    beer_map[key] = [beer.brand for beer in group]
+
+# Or, preferably using dict comprehensions:  
+beer_map = {
+    key: [beer.brand for beer in group] 
+    for key, group in groupby(beers, lambda beer: beer.category)
+}
+
+print (beer_map) 

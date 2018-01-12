@@ -5,13 +5,18 @@
 {% endblock %}
 
 {% block main %}
-    <form action="{{ url_for('login') }}" method="post">
+    <h4>Please enter stock symbol to purchase and amount<br>
+        <br>
+    </h4>
+    <form action="{{ url_for('buy') }}" method="post">
         <fieldset>
             <div class="form-group">
-                <input autocomplete="off" autofocus class="form-control" name=symbol value="{{pass_symbol}}"" type="text"/>
+                <label for="symbol">Stock Symbol</label>
+                <input autocomplete="off" autofocus class="form-control" name=symbol value="{{symbol}}" type="text"/>
             </div>
             <div class="form-group">
-                <input class="form-control" name="Quantity" placeholder="eg. 20" type="number"/>
+                <label for="Quantity">Quantity</label>
+                <input class="form-control" name="Quantity" placeholder="Enter Qty eg. 20" type="number"/>
             </div>
             <div class="form-group">
                 <button class="btn btn-default" type="submit">Buy</button>

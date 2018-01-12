@@ -3,7 +3,7 @@ from flask import Flask, flash, redirect, render_template, request, session, url
 from flask_session import Session
 from passlib.context import CryptContext
 from tempfile import mkdtemp
-
+import datetime
 from helpers import *
 
 # configure application
@@ -39,13 +39,95 @@ myctx = CryptContext(schemes=["sha256_crypt"])
 @app.route("/")
 @login_required
 def index():
-    return apology("TODO")
+    
+    id = session['user_id']
+
+    #establish connection to database
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
+
+    #retrive current user id
+    db.execute('''SELECT * FROM users WHERE id=?''', (id,))
+    rows = db.fetchone()
+
+    #retrieve all trans actions for current user
+    db.execute('''SELECT * FROM transactions WHERE userid=?''', (id,))
+    rows = db.fetchall()
+
+    conn.close()
+
+
+    return render_template("index.html", cash=rows[3])
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
     """Buy shares of stock."""
-    return apology("TODO")
+
+    if request.method == "POST":
+       
+        # ensure stock symbol was submitted
+        if not request.form.get("symbol"):
+            return apology("must provide Stock symbol")
+
+        #lookup stock
+        qt_result1 = lookup(request.form.get("symbol"))
+        if qt_result1 == None:
+            return apology("Stock symbol entered not found")
+        
+        #establish connection to database
+        conn = sqlite3.connect('finance.db')
+        db = conn.cursor()
+
+        #find id of logged on user
+        id = session['user_id']
+
+        #retive cash balance of logged on user
+        db.execute('''SELECT * FROM users WHERE id=?''', (id,))
+        rows = db.fetchone()
+
+        #check is user has enough money
+        if (qt_result1['price']*float(request.form.get("Quantity"))) > rows[3]:
+            #return error message with current cash and purchase price
+            return render_template("funds.html", Balance=rows[3], total_price=(qt_result1['price']*float(request.form.get("Quantity"))))
+        
+        else:
+            try:
+                #Get current date and time
+                now = datetime.datetime.now()
+                
+                #conver to formated string
+                date_time = now.strftime("%Y%m%d%H%M%S")
+                
+                #insert transaction into table
+                db.execute('''INSERT INTO transactions(Symbol, Name, Date, 
+                    Price, qty, UserID) VALUES(?,?,?,?,?,?)''', (qt_result1['symbol'], qt_result1['name'], 
+                    date_time, qt_result1['price'], request.form.get("Quantity"), id))
+                
+                #update users cash
+                db.execute('''UPDATE users SET cash = cash - ? WHERE id = ?''', 
+                ((qt_result1['price']*float(request.form.get("Quantity"))), id))   
+
+                #close database connection    
+                conn.commit()
+                conn.close()
+
+            except:
+                return apology("Error registering transaction, Please try again")
+        
+        # redirect user to home page
+        return redirect(url_for("index"))        
+  
+    else:
+        return render_template("buy.html")
+
+@app.route("/funds", methods=["POST"])
+@login_required
+def funds():
+    """Buy shares of stock."""
+
+    if request.method == "POST":
+        return render_template("buy.html", sy)
 
 @app.route("/history")
 @login_required
@@ -128,7 +210,7 @@ def quote():
         return render_template("quote.html")
     
 
-@app.route("/show_quote", methods=["GET", "POST"])
+@app.route("/show_quote", methods=["POST"]) # can only get here via post.
 @login_required
 def show_quote():
     """Display stock quote."""
@@ -137,10 +219,6 @@ def show_quote():
 
     if request.method == "POST":
         return render_template("buy.html", symbol=pass_symbol)
-
-    else:
-        return render_template("show_quote.html")
-
 
 
 @app.route("/register", methods=["GET", "POST"])

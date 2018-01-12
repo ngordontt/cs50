@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Balance
+{% endblock %}
+
+{% block main %}
+    <form action="{{ url_for('funds') }}" method="post">
+    <h4>Sorry insufficent funds.<br>
+    <br>
+    Your current balance is {{Balance}}<br>
+    <br>
+    Total Purchase price is {{total_price}}
+    </h4>
+        <fieldset>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Buy</button>
+                <a class="btn btn-default" href="{{ url_for('quote') }}" role="button">Quote</a>
+            </div>
+        </fieldset>
+    </form>
+{% endblock %}

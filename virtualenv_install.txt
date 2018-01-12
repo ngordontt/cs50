@@ -1,0 +1,17 @@
+#New Flask install
+
+pip install virtualenv
+pip install virtualenvwrapper-win
+mkvirtualenv FlaskProject
+
+#activate virtualenv
+D:\Users\gordonnp\Envs\FlaskProject\Scripts\activate.ps1
+setprojectdir .
+pip install flask
+
+#start flask app with python file
+$env:FLASK_APP = "application.py"
+$env:FLASK_DEBUG=1
+python -m flask run
+
+http://taswar.zeytinsoft.com/visual-studio-code-python-flask/

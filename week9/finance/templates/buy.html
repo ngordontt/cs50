@@ -8,7 +8,7 @@
     <form action="{{ url_for('login') }}" method="post">
         <fieldset>
             <div class="form-group">
-                <input autocomplete="off" autofocus class="form-control" name={{symbol}} placeholder="Enter Stock Symbol" type="text"/>
+                <input autocomplete="off" autofocus class="form-control" name=symbol value="{{pass_symbol}}"" type="text"/>
             </div>
             <div class="form-group">
                 <input class="form-control" name="Quantity" placeholder="eg. 20" type="number"/>

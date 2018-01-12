@@ -120,8 +120,9 @@ def quote():
             return apology("Stock symbol entered not found")
 
         else:
-            session['pass_symbol'] = qt_result['symbol']
-            #return apology("Stock symbol entered not found")
+            #session['pass_symbol'] = qt_result['symbol']
+            session['pass_symbol'] = "MSFT"
+             #return apology("Stock symbol entered not found")
             return render_template("show_quote.html", name=qt_result['name'], price=qt_result['price'], symbol=qt_result['symbol'])
     else:
         return render_template("quote.html")
@@ -132,10 +133,10 @@ def quote():
 def show_quote():
     """Display stock quote."""
 
-    pass_symbol = session.get('pass_symbol', None)
+    pass_symbol = session['pass_symbol']
 
     if request.method == "POST":
-        return render_template("buy.html", symbol= pass_symbol)
+        return render_template("buy.html", symbol=pass_symbol)
 
     else:
         return render_template("show_quote.html")

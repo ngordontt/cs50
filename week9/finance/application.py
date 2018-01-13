@@ -109,6 +109,7 @@ def buy():
                 ent_sym = request.form.get("symbol")
                 db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, ent_sym))
                 db_port = db.fetchall()
+                
                 if db_port > 0:
                     db.execute('''UPDATE portfolio SET shares = share - ? WHERE id = ? and symbol=?''', 
                     (request.form.get("Quantity"), id, ent_sym))

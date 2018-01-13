@@ -1,6 +1,7 @@
 import csv
 import urllib.request
 import requests
+from pinance import Pinance
 
 from flask import redirect, render_template, request, session
 from functools import wraps
@@ -20,6 +21,7 @@ def apology(message, code=400):
             s = s.replace(old, new)
         return s
     return render_template("apology.html", top=code, bottom=escape(message)), code
+    #return render_template("apology.html", top=code, bottom=message), code
 
 
 def login_required(f):
@@ -101,18 +103,14 @@ def lookup(symbol):
             return None
 
         #get correct name for stock symbol    
-        url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(symbol)
-
-        result = requests.get(url).json()
-
-        for x in result['ResultSet']['Result']:
-            if x['symbol'] == symbol:
-                x
-                                
+        stock = Pinance(symbol)
+        stock.get_quotes()
+        name_stk = stock.quotes_data                                
+        nm_stk = name_stk['longName']
 
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
-            "name":x['name'],
+            "name":nm_stk,
             #"name": symbol.upper(), # for backward compatibility with Yahoo
             "price": price,
             "symbol": symbol.upper()

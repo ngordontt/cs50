@@ -51,10 +51,17 @@ def index():
     rows = db.fetchone()
 
     #retrieve all trans actions for current user
+
+    db.execute('''SELECT * FROM portfolio WHERE UserID=?''', (id,))
+    port_info = db.fetchall()
     
     conn.close()
+    if len(port_info) > 0:
+        return render_template("index.html", cash=rows[3], name=port_info[0][3], shares=port_info[0][2], 
+                                price=3, shares_value=(port_info[0][2]*3),total_value=(port_info[0][2]+rows[3]))
+    else:
+        return render_template("index.html", cash=rows[3])
 
-    return render_template("index.html", cash=rows[3])
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -106,13 +113,13 @@ def buy():
                 ((qt_result1['price']*float(request.form.get("Quantity"))), id))
 
                 #check if stock is already owned and add adds to shares
-                ent_sym = request.form.get("symbol")
+                ent_sym = qt_result1['symbol']
                 db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, ent_sym))
                 db_port = db.fetchall()
                 
-                if db_port > 0:
-                    db.execute('''UPDATE portfolio SET shares = share - ? WHERE id = ? and symbol=?''', 
-                    (request.form.get("Quantity"), id, ent_sym))
+                #check if user has shares of stock then either update shares or insert new record
+                if len(db_port) > 0:
+                    db.execute('''UPDATE portfolio SET shares = shares + ? WHERE UserID = ? and symbol = ?''', (request.form.get("Quantity"), id, ent_sym))
                 else:
                     db.execute('''INSERT INTO portfolio (Symbol, Name, shares, UserID) VALUES(?,?,?,?)''', 
                     (qt_result1['symbol'], qt_result1['name'], request.form.get("Quantity"), id))
@@ -121,8 +128,8 @@ def buy():
                 conn.commit()
                 conn.close()
 
-            except:
-                return apology("Error registering transaction, Please try again")
+            except sqlite3.Error as er:
+                return apology(er)
         
         # redirect user to home page
         return redirect(url_for("index"))        

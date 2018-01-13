@@ -51,11 +51,8 @@ def index():
     rows = db.fetchone()
 
     #retrieve all trans actions for current user
-    db.execute('''SELECT * FROM transactions WHERE userid=?''', (id,))
-    rows = db.fetchall()
-
+    
     conn.close()
-
 
     return render_template("index.html", cash=rows[3])
 
@@ -106,7 +103,18 @@ def buy():
                 
                 #update users cash
                 db.execute('''UPDATE users SET cash = cash - ? WHERE id = ?''', 
-                ((qt_result1['price']*float(request.form.get("Quantity"))), id))   
+                ((qt_result1['price']*float(request.form.get("Quantity"))), id))
+
+                #check if stock is already owned and add adds to shares
+                ent_sym = request.form.get("symbol")
+                db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, ent_sym))
+                db_port = db.fetchall()
+                if db_port > 0:
+                    db.execute('''UPDATE portfolio SET shares = share - ? WHERE id = ? and symbol=?''', 
+                    (request.form.get("Quantity"), id, ent_sym))
+                else:
+                    db.execute('''INSERT INTO portfolio (Symbol, Name, shares, UserID) VALUES(?,?,?,?)''', 
+                    (qt_result1['symbol'], qt_result1['name'], request.form.get("Quantity"), id))
 
                 #close database connection    
                 conn.commit()

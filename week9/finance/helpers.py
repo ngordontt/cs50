@@ -12,16 +12,16 @@ def apology(message, code=400):
     """Renders message as an apology to user."""
     def escape(s):
         """
-        Escape special characters.
+    #     Escape special characters.
 
-        https://github.com/jacebrowning/memegen#special-characters
-        """
-        for old, new in [("-", "--"), (" ", "-"), ("_", "__"), ("?", "~q"),
-                         ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
-            s = s.replace(old, new)
-        return s
-    return render_template("apology.html", top=code, bottom=escape(message)), code
-    #return render_template("apology.html", top=code, bottom=message), code
+    #     https://github.com/jacebrowning/memegen#special-characters
+    #     """
+    #     for old, new in [("-", "--"), (" ", "-"), ("_", "__"), ("?", "~q"),
+    #                      ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
+    #         s = s.replace(old, new)
+    #     return s
+    # return render_template("apology.html", top=code, bottom=escape(message)), code
+    return render_template("apology.html", top=code, bottom=message), code
 
 
 def login_required(f):
@@ -41,78 +41,79 @@ def login_required(f):
 def lookup(symbol):
     """Look up quote for symbol."""
 
-    # reject symbol if it starts with caret
-    if symbol.startswith("^"):
-        return None
+    # # reject symbol if it starts with caret
+    # if symbol.startswith("^"):
+    #     return None
 
-    # reject symbol if it contains comma
-    if "," in symbol:
-        return None
+    # # reject symbol if it contains comma
+    # if "," in symbol:
+    #     return None
 
-    # query Yahoo for quote
-    # http://stackoverflow.com/a/21351911
-    try:
+    # # query Yahoo for quote
+    # # http://stackoverflow.com/a/21351911
+    # try:
 
-        # GET CSV
-        url = f"http://download.finance.yahoo.com/d/quotes.csv?f=snl1&s={symbol}"
-        webpage = urllib.request.urlopen(url)
+    #     # GET CSV
+    #     url = f"http://download.finance.yahoo.com/d/quotes.csv?f=snl1&s={symbol}"
+    #     webpage = urllib.request.urlopen(url)
 
-        # read CSV
-        datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
+    #     # read CSV
+    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
 
-        # parse first row
-        row = next(datareader)
+    #     # parse first row
+    #     row = next(datareader)
 
-        # ensure stock exists
-        try:
-            price = float(row[2])
-        except:
-            return None
+    #     # ensure stock exists
+    #     try:
+    #         price = float(row[2])
+    #     except:
+    #         return None
 
-        # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
-        return {
-            "name": row[2],
-            "price": price,
-            "symbol": row[0].upper()
-        }
+    #     # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
+    #     return {
+    #         "name": row[2],
+    #         "price": price,
+    #         "symbol": row[0].upper()
+    #     }
 
-    except:
-        pass
+    # except:
+    #     pass
 
     # query Alpha Vantage for quote instead
     # https://www.alphavantage.co/documentation/
+    # try:
+
+    #     # GET CSV
+    #     url = f"https://www.alphavantage.co/query?apikey=NAJXWIA8D6VN6A3K&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
+    #     webpage = urllib.request.urlopen(url)
+
+    #     # parse CSV
+    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
+
+    #     # ignore first row
+    #     next(datareader)
+
+    #     # parse second row
+    #     row = next(datareader)
+
+    #     # ensure stock exists
+    #     try:
+    #         price = float(row[4])
+    #     except:
+    #         return None
     try:
-
-        # GET CSV
-        url = f"https://www.alphavantage.co/query?apikey=NAJXWIA8D6VN6A3K&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
-        webpage = urllib.request.urlopen(url)
-
-        # parse CSV
-        datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
-
-        # ignore first row
-        next(datareader)
-
-        # parse second row
-        row = next(datareader)
-
-        # ensure stock exists
-        try:
-            price = float(row[4])
-        except:
-            return None
-
-        #get correct name for stock symbol    
+        #get stock info, as supplied method was to slow
         stock = Pinance(symbol)
         stock.get_quotes()
         name_stk = stock.quotes_data                                
         nm_stk = name_stk['longName']
+        nm_price = name_stk['regularMarketPrice']
 
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
             "name":nm_stk,
             #"name": symbol.upper(), # for backward compatibility with Yahoo
-            "price": price,
+            "price": nm_price,
             "symbol": symbol.upper()
         }
 

@@ -54,11 +54,27 @@ def index():
 
     db.execute('''SELECT * FROM portfolio WHERE UserID=?''', (id,))
     port_info = db.fetchall()
+
+    j_list=[] 
+    total_share=0
+
+    for p in port_info:
+        j_stock = p[1]
+        j_share = p[2]
+        j_name = p[3]
+        j_result = lookup(j_stock)
+        j_price = j_result['price']
+        j_shares_valuei = j_price * j_share
+        j_shares_value = usd(j_price * j_share)
+        j_price = usd(j_price)
+        j_tuple = (j_stock, j_share, j_name, j_price, j_shares_value)
+        j_list.append(j_tuple)
+        total_share = total_share + j_shares_valuei
     
+    total_v = total_share + rows[3]
     conn.close()
     if len(port_info) > 0:
-        return render_template("index.html", cash=rows[3], name=port_info[0][3], shares=port_info[0][2], 
-                                price=3, shares_value=(port_info[0][2]*3),total_value=(port_info[0][2]+rows[3]))
+        return render_template("index.html", cash=usd(rows[3]), data=j_list, total_value=usd(total_v), user=rows[1])
     else:
         return render_template("index.html", cash=rows[3])
 
@@ -149,7 +165,24 @@ def funds():
 @login_required
 def history():
     """Show history of transactions."""
-    return apology("TODO")
+    
+    id = session['user_id']
+
+    #establish connection to database
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
+
+    #retrive current user id
+    db.execute('''SELECT * FROM users WHERE id=?''', (id,))
+    rows = db.fetchone()
+
+    db.execute('''SELECT * FROM transactions WHERE UserID=?''', (id,))
+    trans_info =db.fetchall()
+    db.close()
+
+    #retrieve all trans actions for current user
+    return render_template("history.html", data = trans_info, user=rows[1])
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -300,11 +333,86 @@ def register():
     else:
         return render_template("register.html")
 
-
-
-
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
     """Sell shares of stock."""
-    return apology("TODO")
+
+    id = session['user_id']
+
+    if request.method == "POST":
+
+        # ensure sell is not 0
+
+        conn = sqlite3.connect('finance.db')
+        db = conn.cursor()
+
+        db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, request.form.get("symbol").upper()))
+        port_info = db.fetchone()
+        
+        if request.form.get("sell_qty") == 0:
+            return apology("Cannot sell 0")
+
+        if int(request.form.get("sell_qty")) > port_info[2]:
+            return apology("Trying to sell more share than you have")
+                
+        else:
+            try:
+                #Get current date and time
+                now = datetime.datetime.now()
+
+                #conver to formated string
+                date_time = now.strftime("%Y%m%d%H%M%S")
+
+                qt_result2 = lookup(request.form.get("symbol"))
+                
+                #insert transaction into table
+                db.execute('''INSERT INTO transactions(Symbol, Name, Date, Price, qty, UserID) VALUES(?,?,?,?,?,?)''', 
+                (request.form.get("symbol").upper(), qt_result2['name'], date_time, qt_result2['price'], -int(request.form.get("sell_qty")), id))
+
+                #update users cash
+                db.execute('''UPDATE users SET cash = cash + ? WHERE id = ?''', ((qt_result2['price']*float(request.form.get("sell_qty"))), id))
+
+                db.execute('''UPDATE portfolio SET shares = shares - ? WHERE UserID = ? and symbol = ?''', (int(request.form.get("sell_qty")), id, request.form.get("symbol").upper()))
+
+                #close database connection    
+                conn.commit()
+                conn.close()
+
+                # redirect user to home page
+                return redirect(url_for("index"))
+
+            except sqlite3.Error as er:
+                return apology(er)
+
+    else:
+        #establish connection to database
+        conn = sqlite3.connect('finance.db')
+        db = conn.cursor()
+
+        #retrive tranaction history
+        db.execute('''SELECT * FROM transactions WHERE UserID=? and qty > 0''', (id,))
+        trans_info =db.fetchall()
+        db.close()
+
+        j_list=[] 
+
+        for p in trans_info:
+            j_stock = p[0]
+            j_share = p[4]
+            j_name = p[1]
+            j_purchase_price = usd(p[3])
+            j_result = lookup(j_stock)
+            j__current_price = j_result['price']
+            j__current_price_usd = usd(j__current_price)
+            j_tuple = (j_stock, j_name, j_purchase_price, j_share, j__current_price_usd)
+            j_list.append(j_tuple)
+
+        #retrieve all trans actions for current user
+        return render_template("sell.html", data = j_list, lng= len(trans_info))
+
+@app.route("/sp500", methods=["GET"])
+@login_required
+def sp500():
+    """List of S&P500 companies."""
+    return render_template("sp500.htm")    

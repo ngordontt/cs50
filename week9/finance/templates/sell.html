@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sell
+{% endblock %}
+
+{% block main %}
+<form action="{{ url_for('sell') }}" method="POST">
+
+    <table class="table">
+        <thead>
+            <tr>
+            <th scope="col">Stock Symbol</th>
+            <th scope="col">Stock Name</th>
+            <th scope="col">Purchase Price</th>
+            <th scope="col">Shares</th>
+            <th scope="col">Current Price</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for d in data %}  
+                <tr>
+                <td>{{d[0]}}</td>
+                <td>{{d[1]}}</td>
+                <td>{{d[2]}}</td>
+                <td>{{d[3]}}</td>
+                <td>{{d[4]}}</td>
+                </tr>
+        {% endfor %}
+        </tbody>
+        </table>
+    <fieldset>
+            <div class="form-group">
+                <label for="symbol">Stock Symbol</label>
+                <input autocomplete="off" autofocus class="form-control" name=symbol placeholder="Enter symbol to sell" type="text"/>
+            </div>
+            <div class="form-group">
+                <label for="Quantity">Quantity</label>
+                <input class="form-control" name="sell_qty" placeholder="Enter Qty eg. 20" type="number"/>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Sell</button>
+            </div>
+        </fieldset>
+</form>
+{% endblock %}

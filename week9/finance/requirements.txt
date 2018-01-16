@@ -3,4 +3,7 @@ Flask-Session
 passlib
 SQLAlchemy
 requests
-pinance
+googlefinance
+from googlefinance import getQuotes
+import json
+print json.dumps(getQuotes('AAPL'), indent=2)

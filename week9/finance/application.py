@@ -52,7 +52,7 @@ def index():
 
     #retrieve all trans actions for current user
 
-    db.execute('''SELECT * FROM portfolio WHERE UserID=?''', (id,))
+    db.execute('''SELECT * FROM portfolio WHERE UserID=? and shares > 0''', (id,))
     port_info = db.fetchall()
 
     j_list=[] 
@@ -180,8 +180,19 @@ def history():
     trans_info =db.fetchall()
     db.close()
 
+    t_list = []
+    
+    for t in trans_info:
+        t_stock = t[0]
+        t_name = t[1]
+        t_date = date_f(t[2])
+        t_price = t[3]
+        t_share = t[4]
+        t_tuple = (t_stock ,t_name,t_date,t_price,t_share)
+        t_list.append(t_tuple)
+        
     #retrieve all trans actions for current user
-    return render_template("history.html", data = trans_info, user=rows[1])
+    return render_template("history.html", data = t_list, user=rows[1])
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -251,8 +262,7 @@ def quote():
             return apology("Stock symbol entered not found")
 
         else:
-            #session['pass_symbol'] = qt_result['symbol']
-            session['pass_symbol'] = "MSFT"
+            session['pass_symbol'] = qt_result['symbol']
              #return apology("Stock symbol entered not found")
             return render_template("show_quote.html", name=qt_result['name'], price=qt_result['price'], symbol=qt_result['symbol'])
     else:

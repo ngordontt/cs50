@@ -1,11 +1,17 @@
 import csv
 import urllib.request
 import requests
-from pinance import Pinance
-
+import json
 from flask import redirect, render_template, request, session
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import demjson
+import json
+import sys
+import re
+import urllib
+from urllib.request import Request, urlopen
+import datetime
 
 
 def apology(message, code=400):
@@ -41,13 +47,13 @@ def login_required(f):
 def lookup(symbol):
     """Look up quote for symbol."""
 
-    # # reject symbol if it starts with caret
-    # if symbol.startswith("^"):
-    #     return None
+    # reject symbol if it starts with caret
+    if symbol.startswith("^"):
+        return None
 
-    # # reject symbol if it contains comma
-    # if "," in symbol:
-    #     return None
+    # reject symbol if it contains comma
+    if "," in symbol:
+        return None
 
     # # query Yahoo for quote
     # # http://stackoverflow.com/a/21351911
@@ -101,21 +107,51 @@ def lookup(symbol):
     #         price = float(row[4])
     #     except:
     #         return None
+    # except:
+    #     pass
+
+    # try:
+        # #get stock info, as supplied method was to slow
+        # stock = Pinance(symbol)
+        # stock.get_quotes()
+        # name_stk = stock.quotes_data                                
+        # nm_stk = name_stk['longName']
+        # nm_price = name_stk['regularMarketPrice']
+
     try:
-        #get stock info, as supplied method was to slow
-        stock = Pinance(symbol)
-        stock.get_quotes()
-        name_stk = stock.quotes_data                                
-        nm_stk = name_stk['longName']
-        nm_price = name_stk['regularMarketPrice']
+
+        url = 'https://finance.google.com/finance?output=json&q=%s' % symbol
+
+        req = Request(url)
+        resp = urlopen(req)
+        content = resp.read().decode('ascii', 'ignore').strip()
+        content = json.loads(content[3:])
+        id = content[0]["id"]
+
+        url1 = 'https://finance.google.com/finance/data?dp=mra&output=json&catid=all&cid=%s' % id
+
+        req = Request(url)
+        resp = urlopen(req)
+        content = resp.read().decode('ascii', 'ignore').strip()
+        content = json.loads(content[3:])
+
+
+        # # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
+        # return {
+        #     #"name":nm_stk,
+        #     "name": symbol.upper(), # for backward compatibility with Yahoo
+        #     "price": nm_price,
+        #     "symbol": symbol.upper()
+        # }
 
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
-            "name":nm_stk,
-            #"name": symbol.upper(), # for backward compatibility with Yahoo
-            "price": nm_price,
-            "symbol": symbol.upper()
+            
+            "name": content[0]["name"], # for backward compatibility with Yahoo
+            "price": float(content[0]["l"]),
+            "symbol": content[0]["symbol"].upper()
         }
+
 
     except:
         return None
@@ -124,3 +160,10 @@ def lookup(symbol):
 def usd(value):
     """Formats value as USD."""
     return f"${value:,.2f}"
+
+def date_f(d_val):
+    """Formats the Date"""
+
+    dt=datetime.datetime.strptime(d_val,"%Y%m%d%H%M%S")
+    dt_u = datetime.datetime.strftime(dt,"%c")
+    return dt_u

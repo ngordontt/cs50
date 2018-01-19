@@ -1,35 +1,33 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Home
+    History
 {% endblock %}
 
 {% block main %}
-<form action="{{ url_for('index') }}" method="post">
+<form action="{{ url_for('history') }}" method="post">
         <br>
-            <h2>Assets for {{user}}<br>
+            <h2>History for {{user}}<br>
             <br>
-            Available Cash {{cash}}<br>
-            <br>
-            Total Cash and Stock Value {{total_value}}<br>
-            <br>
-            
         </h2>
 
     <table class="table">
         <thead>
             <tr>
+            <th scope="col">Stock Symbol</th>
             <th scope="col">Stock Name</th>
+            <th scope="col">Purchase date</th>
+            <th scope="col">Purchase Price</th>
             <th scope="col">Shares</th>
-            <th scope="col">Stock Price</th>
-            <th scope="col">Total Value</th>
+            
             </tr>
         </thead>
         <tbody>
         {% for d in data %}  
             <tr>
-            <td>{{d[2]}}</td>
+            <td>{{d[0]}}</td>
             <td>{{d[1]}}</td>
+            <td>{{d[2]}}</td>
             <td>{{d[3]}}</td>
             <td>{{d[4]}}</td>
             </tr>

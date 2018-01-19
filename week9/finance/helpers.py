@@ -1,25 +1,29 @@
-import csv
-import urllib.request
+from urllib.request import Request, urlopen
 import requests
-
+import json
 from flask import redirect, render_template, request, session
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import demjson
+import sys
+import re
+import datetime
 
-
+import csv
 def apology(message, code=400):
     """Renders message as an apology to user."""
     def escape(s):
         """
-        Escape special characters.
+    #     Escape special characters.
 
-        https://github.com/jacebrowning/memegen#special-characters
-        """
+    #     https://github.com/jacebrowning/memegen#special-characters
+    #     """
         for old, new in [("-", "--"), (" ", "-"), ("_", "__"), ("?", "~q"),
                          ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
             s = s.replace(old, new)
         return s
     return render_template("apology.html", top=code, bottom=escape(message)), code
+    # return render_template("apology.html", top=code, bottom=message), code
 
 
 def login_required(f):
@@ -47,76 +51,105 @@ def lookup(symbol):
     if "," in symbol:
         return None
 
-    # query Yahoo for quote
-    # http://stackoverflow.com/a/21351911
-    try:
+    # # query Yahoo for quote
+    # # http://stackoverflow.com/a/21351911
+    # try:
 
-        # GET CSV
-        url = f"http://download.finance.yahoo.com/d/quotes.csv?f=snl1&s={symbol}"
-        webpage = urllib.request.urlopen(url)
+    #     # GET CSV
+    #     url = f"http://download.finance.yahoo.com/d/quotes.csv?f=snl1&s={symbol}"
+    #     webpage = urllib.request.urlopen(url)
 
-        # read CSV
-        datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
+    #     # read CSV
+    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
 
-        # parse first row
-        row = next(datareader)
+    #     # parse first row
+    #     row = next(datareader)
 
-        # ensure stock exists
-        try:
-            price = float(row[2])
-        except:
-            return None
+    #     # ensure stock exists
+    #     try:
+    #         price = float(row[2])
+    #     except:
+    #         return None
 
-        # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
-        return {
-            "name": row[2],
-            "price": price,
-            "symbol": row[0].upper()
-        }
+    #     # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
+    #     return {
+    #         "name": row[2],
+    #         "price": price,
+    #         "symbol": row[0].upper()
+    #     }
 
-    except:
-        pass
+    # except:
+    #     pass
 
     # query Alpha Vantage for quote instead
     # https://www.alphavantage.co/documentation/
+    # try:
+
+    #     # GET CSV
+    #     url = f"https://www.alphavantage.co/query?apikey=NAJXWIA8D6VN6A3K&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
+    #     webpage = urllib.request.urlopen(url)
+
+    #     # parse CSV
+    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
+
+    #     # ignore first row
+    #     next(datareader)
+
+    #     # parse second row
+    #     row = next(datareader)
+
+    #     # ensure stock exists
+    #     try:
+    #         price = float(row[4])
+    #     except:
+    #         return None
+    # except:
+    #     pass
+
+    # try:
+        # #get stock info, as supplied method was to slow
+        # stock = Pinance(symbol)
+        # stock.get_quotes()
+        # name_stk = stock.quotes_data                                
+        # nm_stk = name_stk['longName']
+        # nm_price = name_stk['regularMarketPrice']
+
     try:
 
-        # GET CSV
-        url = f"https://www.alphavantage.co/query?apikey=NAJXWIA8D6VN6A3K&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
-        webpage = urllib.request.urlopen(url)
+        #code snippet taken from https://github.com/neberej/pinance
+        
+        url = 'https://finance.google.com/finance?output=json&q=%s' % symbol
 
-        # parse CSV
-        datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
+        req = Request(url)
+        resp = urlopen(req)
+        content = resp.read().decode('ascii', 'ignore').strip()
+        content = json.loads(content[3:])
+        id = content[0]["id"]
 
-        # ignore first row
-        next(datareader)
+        url1 = 'https://finance.google.com/finance/data?dp=mra&output=json&catid=all&cid=%s' % id
 
-        # parse second row
-        row = next(datareader)
+        req = Request(url)
+        resp = urlopen(req)
+        content = resp.read().decode('ascii', 'ignore').strip()
+        content = json.loads(content[3:])
 
-        # ensure stock exists
-        try:
-            price = float(row[4])
-        except:
-            return None
 
-        #get correct name for stock symbol    
-        url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(symbol)
-
-        result = requests.get(url).json()
-
-        for x in result['ResultSet']['Result']:
-            if x['symbol'] == symbol:
-                x
-                                
+        # # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
+        # return {
+        #     #"name":nm_stk,
+        #     "name": symbol.upper(), # for backward compatibility with Yahoo
+        #     "price": nm_price,
+        #     "symbol": symbol.upper()
+        # }
 
         # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
         return {
-            "name":x['name'],
-            #"name": symbol.upper(), # for backward compatibility with Yahoo
-            "price": price,
-            "symbol": symbol.upper()
+            
+            "name": content[0]["name"], # for backward compatibility with Yahoo
+            "price": float(content[0]["l"]),
+            "symbol": content[0]["symbol"].upper()
         }
+
 
     except:
         return None
@@ -125,3 +158,11 @@ def lookup(symbol):
 def usd(value):
     """Formats value as USD."""
     return f"${value:,.2f}"
+
+def date_f(d_val):
+    """Formats the Date"""
+    #take string date format and makes into date time
+    dt=datetime.datetime.strptime(d_val,"%Y%m%d%H%M%S")
+    #rearranges date
+    dt_u = datetime.datetime.strftime(dt,"%c")
+    return dt_u

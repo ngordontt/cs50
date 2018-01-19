@@ -29,12 +29,6 @@ Session(app)
 
 #setup established hasing scheme
 myctx = CryptContext(schemes=["sha256_crypt"])
-# configure CS50 Library to use SQLite database
-#db = SQL("sqlite:///finance.db")
-
-# https://docs.python.org/3/library/sqlite3.html
-# conn = sqlite3.connect('finance.db')
-# db = conn.cursor()
 
 @app.route("/")
 @login_required
@@ -51,10 +45,36 @@ def index():
     rows = db.fetchone()
 
     #retrieve all trans actions for current user
-    
+    db.execute('''SELECT * FROM portfolio WHERE UserID=? and shares > 0''', (id,))
+    port_info = db.fetchall()
+
+    #close DB cnnection
     conn.close()
 
-    return render_template("index.html", cash=rows[3])
+    #check amount of records to display
+    if len(port_info) > 0:
+        #recreate tuple to include calculations
+        j_list=[] 
+        total_share=0
+
+        for p in port_info:
+            j_stock = p[1]
+            j_share = p[2]
+            j_name = p[3]
+            j_result = lookup(j_stock)
+            j_price = j_result['price'] #lookup current price
+            j_shares_valuei = j_price * j_share #give current value of shares
+            j_shares_value = usd(j_price * j_share) 
+            j_price = usd(j_price)
+            j_tuple = (j_stock, j_share, j_name, j_price, j_shares_value)
+            j_list.append(j_tuple)
+            total_share = total_share + j_shares_valuei # total shares value
+        
+            total_v = total_share + rows[3] #total value of shares and cash
+
+        return render_template("index.html", cash=usd(rows[3]), data=j_list, total_value=usd(total_v), user=rows[1])
+    else:
+        return render_template("index.html", cash=rows[3])
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -106,13 +126,13 @@ def buy():
                 ((qt_result1['price']*float(request.form.get("Quantity"))), id))
 
                 #check if stock is already owned and add adds to shares
-                ent_sym = request.form.get("symbol")
+                ent_sym = qt_result1['symbol']
                 db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, ent_sym))
                 db_port = db.fetchall()
                 
-                if db_port > 0:
-                    db.execute('''UPDATE portfolio SET shares = share - ? WHERE id = ? and symbol=?''', 
-                    (request.form.get("Quantity"), id, ent_sym))
+                #check if user has shares of stock then either update shares or insert new record
+                if len(db_port) > 0:
+                    db.execute('''UPDATE portfolio SET shares = shares + ? WHERE UserID = ? and symbol = ?''', (request.form.get("Quantity"), id, ent_sym))
                 else:
                     db.execute('''INSERT INTO portfolio (Symbol, Name, shares, UserID) VALUES(?,?,?,?)''', 
                     (qt_result1['symbol'], qt_result1['name'], request.form.get("Quantity"), id))
@@ -121,8 +141,8 @@ def buy():
                 conn.commit()
                 conn.close()
 
-            except:
-                return apology("Error registering transaction, Please try again")
+            except sqlite3.Error as er:
+                return apology(er)
         
         # redirect user to home page
         return redirect(url_for("index"))        
@@ -142,7 +162,35 @@ def funds():
 @login_required
 def history():
     """Show history of transactions."""
-    return apology("TODO")
+    
+    id = session['user_id']
+
+    #establish connection to database
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
+
+    #retrive current user id
+    db.execute('''SELECT * FROM users WHERE id=?''', (id,))
+    rows = db.fetchone()
+
+    db.execute('''SELECT * FROM transactions WHERE UserID=?''', (id,))
+    trans_info =db.fetchall()
+    db.close()
+
+    #recreate tuple to include formated date
+    t_list = []
+
+    for t in trans_info:
+        t_stock = t[0]
+        t_name = t[1]
+        t_date = date_f(t[2]) #format date
+        t_price = t[3]
+        t_share = t[4]
+        t_tuple = (t_stock ,t_name,t_date,t_price,t_share)
+        t_list.append(t_tuple)
+        
+    #retrieve all trans actions for current user
+    return render_template("history.html", data = t_list, user=rows[1])
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -211,14 +259,12 @@ def quote():
             return apology("Stock symbol entered not found")
 
         else:
-            #session['pass_symbol'] = qt_result['symbol']
-            session['pass_symbol'] = "MSFT"
+            session['pass_symbol'] = qt_result['symbol']
              #return apology("Stock symbol entered not found")
             return render_template("show_quote.html", name=qt_result['name'], price=qt_result['price'], symbol=qt_result['symbol'])
     else:
         return render_template("quote.html")
-    
-
+  
 @app.route("/show_quote", methods=["POST"]) # can only get here via post.
 @login_required
 def show_quote():
@@ -228,7 +274,6 @@ def show_quote():
 
     if request.method == "POST":
         return render_template("buy.html", symbol=pass_symbol)
-
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -293,11 +338,145 @@ def register():
     else:
         return render_template("register.html")
 
-
-
-
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
     """Sell shares of stock."""
-    return apology("TODO")
+
+    id = session['user_id']
+
+    if request.method == "POST":
+
+        # ensure sell is not 0
+
+        conn = sqlite3.connect('finance.db')
+        db = conn.cursor()
+
+        #retrive list of user stock
+        db.execute('''SELECT * FROM portfolio WHERE UserID=? and symbol=?''', (id, request.form.get("symbol").upper()))
+        port_info = db.fetchone()
+        
+        #if user tries to sell 0 give apology
+        if request.form.get("sell_qty") == 0:
+            return apology("Cannot sell 0")
+        
+        #if user has 0 give apology
+        if int(request.form.get("sell_qty")) > port_info[2]:
+            return apology("Trying to sell more share than you have")
+                
+        else:
+            try:
+                #Get current date and time
+                now = datetime.datetime.now()
+
+                #conver to formated string
+                date_time = now.strftime("%Y%m%d%H%M%S")
+
+                qt_result2 = lookup(request.form.get("symbol"))
+                
+                #insert transaction into table
+                db.execute('''INSERT INTO transactions(Symbol, Name, Date, Price, qty, UserID) VALUES(?,?,?,?,?,?)''', 
+                (request.form.get("symbol").upper(), qt_result2['name'], date_time, qt_result2['price'], -int(request.form.get("sell_qty")), id))
+
+                #update users cash
+                db.execute('''UPDATE users SET cash = cash + ? WHERE id = ?''', ((qt_result2['price']*float(request.form.get("sell_qty"))), id))
+
+                db.execute('''UPDATE portfolio SET shares = shares - ? WHERE UserID = ? and symbol = ?''', (int(request.form.get("sell_qty")), id, request.form.get("symbol").upper()))
+
+                #close database connection    
+                conn.commit()
+                conn.close()
+
+                # redirect user to home page
+                return redirect(url_for("index"))
+
+            except sqlite3.Error as er:
+                return apology(er)
+
+    else:
+        #establish connection to database
+        conn = sqlite3.connect('finance.db')
+        db = conn.cursor()
+
+        #retrive tranaction history
+        db.execute('''SELECT * FROM transactions WHERE UserID=? and qty > 0''', (id,))
+        trans_info =db.fetchall()
+        db.close()
+
+        j_list=[] 
+
+        for p in trans_info:
+            j_stock = p[0]
+            j_share = p[4]
+            j_name = p[1]
+            j_purchase_price = usd(p[3])
+            j_result = lookup(j_stock)
+            j__current_price = j_result['price']
+            j__current_price_usd = usd(j__current_price)
+            j_tuple = (j_stock, j_name, j_purchase_price, j_share, j__current_price_usd)
+            j_list.append(j_tuple)
+
+        #retrieve all trans actions for current user
+        return render_template("sell.html", data = j_list, lng= len(trans_info))
+
+@app.route("/sp500", methods=["GET"])
+@login_required
+def sp500():
+    """List of S&P500 companies."""
+    return render_template("sp500.htm")    
+
+@app.route("/reset", methods=["GET", "POST"])
+def reset():
+    """Reset user password"""
+    conn = sqlite3.connect('finance.db')
+    db = conn.cursor()
+
+    # forget any user_id
+    session.clear()
+    
+    # if user reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+
+        # ensure username was submitted
+        if not request.form.get("username"):
+            return apology("must provide username")
+
+        # ensure password was submitted
+        elif not request.form.get("password"):
+            return apology("must provide password")
+
+        # ensure password confirmation was submitted
+        elif not request.form.get("conf_password"):
+            return apology("must complete password confirmation Field")
+
+        # ensure password confirmation matched password
+        elif request.form.get("password") != request.form.get("conf_password"):
+            return apology("password and password confirmation fields do not match")
+
+        
+        #hash userpassword using werkzeug.security import generate_password_hash
+        hash_pw = myctx.hash(request.form.get("password"))
+        username = request.form.get("username")
+
+        # Updates users password hash
+        db.execute('''UPDATE users SET hash = ? WHERE username = ?''', (hash_pw,username))
+
+        # query database for username
+        db.execute('''SELECT * FROM users WHERE username=?''', (username,))
+        rows = db.fetchone()
+
+        #commit changes and close database    
+        conn.commit()
+        conn.close()
+        
+        # remember which user has logged in
+        session["user_id"] = rows[0]
+
+        # redirect user to home page
+        return redirect(url_for("index"))
+
+
+    # else if user reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("reset.html")
+    

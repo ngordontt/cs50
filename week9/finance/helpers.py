@@ -4,7 +4,7 @@ import json
 from flask import redirect, render_template, request, session
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-import demjson
+# import demjson
 import sys
 import re
 import datetime
@@ -51,69 +51,7 @@ def lookup(symbol):
     if "," in symbol:
         return None
 
-    # # query Yahoo for quote
-    # # http://stackoverflow.com/a/21351911
-    # try:
-
-    #     # GET CSV
-    #     url = f"http://download.finance.yahoo.com/d/quotes.csv?f=snl1&s={symbol}"
-    #     webpage = urllib.request.urlopen(url)
-
-    #     # read CSV
-    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
-
-    #     # parse first row
-    #     row = next(datareader)
-
-    #     # ensure stock exists
-    #     try:
-    #         price = float(row[2])
-    #     except:
-    #         return None
-
-    #     # return stock's name (as a str), price (as a float), and (uppercased) symbol (as a str)
-    #     return {
-    #         "name": row[2],
-    #         "price": price,
-    #         "symbol": row[0].upper()
-    #     }
-
-    # except:
-    #     pass
-
-    # query Alpha Vantage for quote instead
-    # https://www.alphavantage.co/documentation/
-    # try:
-
-    #     # GET CSV
-    #     url = f"https://www.alphavantage.co/query?apikey=NAJXWIA8D6VN6A3K&datatype=csv&function=TIME_SERIES_INTRADAY&interval=1min&symbol={symbol}"
-    #     webpage = urllib.request.urlopen(url)
-
-    #     # parse CSV
-    #     datareader = csv.reader(webpage.read().decode("utf-8").splitlines())
-
-    #     # ignore first row
-    #     next(datareader)
-
-    #     # parse second row
-    #     row = next(datareader)
-
-    #     # ensure stock exists
-    #     try:
-    #         price = float(row[4])
-    #     except:
-    #         return None
-    # except:
-    #     pass
-
-    # try:
-        # #get stock info, as supplied method was to slow
-        # stock = Pinance(symbol)
-        # stock.get_quotes()
-        # name_stk = stock.quotes_data                                
-        # nm_stk = name_stk['longName']
-        # nm_price = name_stk['regularMarketPrice']
-
+    
     try:
 
         #code snippet taken from https://github.com/neberej/pinance
